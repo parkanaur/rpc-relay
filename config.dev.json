@@ -1,0 +1,23 @@
+{
+  "jrpcserver": {
+    "host": "localhost",
+    "port": 8001,
+    "enabledRpcMethods": [
+      "calculateSum",
+      "reverseString"
+    ]
+  },
+  "ingress": {
+    "refreshCachedRequestThreshold": 10.0,
+    "expireCachedRequestThreshold": 60.0,
+    "host": "localhost",
+    "port": 8000
+  },
+  "egress": {
+    "host": "localhost",
+    "port": 8002
+  },
+  "nats": {
+    "serverUrl": "nats://localhost:4222"
+  }
+}
