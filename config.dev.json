@@ -2,6 +2,7 @@
   "jrpcserver": {
     "host": "localhost",
     "port": 8001,
+    "rpcEndpointUrl": "/rpc",
     "enabledRpcMethods": [
       "calculateSum",
       "reverseString"

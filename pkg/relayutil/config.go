@@ -9,6 +9,7 @@ import (
 type JRPCServerConfig struct {
 	Host              string
 	Port              int
+	RPCEndpointURL    string
 	EnabledRPCMethods []string
 }
 
