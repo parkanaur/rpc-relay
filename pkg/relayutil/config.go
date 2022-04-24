@@ -2,6 +2,7 @@ package relayutil
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
@@ -11,6 +12,21 @@ type JRPCServerConfig struct {
 	Port              int
 	RPCEndpointURL    string
 	EnabledRPCMethods []string
+	IsTLSEnabled      bool
+}
+
+// GetFullEndpointURL generates a full HTTP URL for JSON-RPC endpoint from the config
+func (config *JRPCServerConfig) GetFullEndpointURL() string {
+	protocol := "http"
+	if config.IsTLSEnabled {
+		protocol = "https"
+	}
+	return fmt.Sprintf("%v://%v:%d%v", protocol, config.Host, config.Port, config.RPCEndpointURL)
+}
+
+// GetHostWithPort Returns a host:port for JSON-RPC server
+func (config *JRPCServerConfig) GetHostWithPort() string {
+	return fmt.Sprintf("%v:%d", config.Host, config.Port)
 }
 
 // IngressConfig is a part of the config which holds config values for the ingress proxy

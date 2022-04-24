@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"rpc-relay/pkg/jrpcserver"
@@ -27,8 +26,8 @@ func main() {
 		log.Fatalln("Unable to start the JSON-RPC server:", err)
 	}
 
-	//http.HandleFunc(config.JRPCServer.RPCEndpointURL, server)
-	addr := fmt.Sprintf("%v:%d", config.JRPCServer.Host, config.JRPCServer.Port)
+	http.Handle(config.JRPCServer.RPCEndpointURL, server)
+	addr := config.JRPCServer.GetHostWithPort()
 	log.Infoln("Listening on", addr)
-	log.Fatal(http.ListenAndServe(addr, server))
+	log.Fatal(http.ListenAndServe(addr, nil))
 }
