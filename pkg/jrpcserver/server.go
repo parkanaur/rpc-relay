@@ -29,23 +29,17 @@ func NewServer(config *relayutil.Config) (http.Handler, error) {
 	server := rpc.NewServer()
 
 	// Register each available service from config
-	for _, serviceName := range config.JRPCServer.EnabledRPCMethods {
+	for serviceName, _ := range config.JRPCServer.EnabledRPCModules {
 		if service, ok := services.ServiceRegistry[serviceName]; ok {
 			err := server.RegisterName(serviceName, service())
 			if err != nil {
 				return nil, err
 			}
-			log.Infoln("Registered service", serviceName)
+			log.Infoln("Registered service module", serviceName)
 		} else {
-			return nil, fmt.Errorf("%v not found in service registry", serviceName)
+			return nil, fmt.Errorf("%v not found in service module registry", serviceName)
 		}
 	}
-
-	//handler := func(w http.ResponseWriter, r *http.Request) error {
-	//	if r.URL.Path == config.JRPCServer.RPCEndpointURL {
-	//		serverCodec :=
-	//	}
-	//}
 
 	return server, nil
 }

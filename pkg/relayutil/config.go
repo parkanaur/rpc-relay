@@ -11,7 +11,7 @@ type JRPCServerConfig struct {
 	Host              string
 	Port              int
 	RPCEndpointURL    string
-	EnabledRPCMethods []string
+	EnabledRPCModules map[string][]string
 	IsTLSEnabled      bool
 }
 
@@ -49,7 +49,9 @@ type EgressConfig struct {
 
 // NATSConfig is a part of the config which holds config values for the NATS server
 type NATSConfig struct {
-	ServerURL string
+	ServerURL   string
+	SubjectName string
+	QueueName   string
 }
 
 // Config is a struct for holding configuration values for all proxies and servers

@@ -3,10 +3,14 @@
     "host": "localhost",
     "port": 8001,
     "rpcEndpointUrl": "/rpc",
-    "enabledRpcMethods": [
-      "calculateSum",
-      "reverseString"
-    ]
+    "enabledRpcModules": {
+      "calculateSum": [
+        "calculateSum"
+      ],
+      "reverseString": [
+        "reverseString"
+      ]
+    }
   },
   "ingress": {
     "refreshCachedRequestThreshold": 10.0,
@@ -19,6 +23,8 @@
     "port": 8002
   },
   "nats": {
-    "serverUrl": "nats://localhost:4222"
+    "serverUrl": "nats://localhost:4222",
+    "subjectName": "jrpc.*.*",
+    "queueName": "jrpcQueue"
   }
 }

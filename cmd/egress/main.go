@@ -2,9 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"github.com/ethereum/go-ethereum/rpc"
 	log "github.com/sirupsen/logrus"
+	"rpc-relay/pkg/egress"
 	"rpc-relay/pkg/relayutil"
 )
 
@@ -21,17 +20,9 @@ func main() {
 		log.Fatalln("Bad config file:", configPath, err)
 	}
 
-	url := config.JRPCServer.GetFullEndpointURL()
-	client, err := rpc.DialHTTP(url)
+	server, err := egress.NewServer(config)
 	if err != nil {
-		log.Fatalln("Could not start RPC client", configPath, err)
+		log.Fatalln("Could not initialize egress server:", err)
 	}
-	log.Infoln("Dialed", url)
-
-	var result int
-	err = client.Call(&result, "calculateSum_calculateSum", 1, 2)
-	if err != nil {
-		log.Fatalln("Error calling RPC service", err)
-	}
-	fmt.Println(result)
+	server.Serve()
 }
