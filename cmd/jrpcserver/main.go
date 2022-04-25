@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"flag"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"os"
+	"os/signal"
 	"rpc-relay/pkg/jrpcserver"
 	"rpc-relay/pkg/relayutil"
+	"syscall"
 )
 
 var configPath string
@@ -26,8 +30,26 @@ func main() {
 		log.Fatalln("Unable to start the JSON-RPC server:", err)
 	}
 
-	http.Handle(config.JRPCServer.RPCEndpointURL, server)
-	addr := config.JRPCServer.GetHostWithPort()
-	log.Infoln("Listening on", addr)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	// Graceful shutdown
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+
+	httpServer := &http.Server{Addr: config.JRPCServer.GetHostWithPort(), Handler: server}
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalln("Error while serving HTTP:", err)
+		}
+	}()
+	log.Infoln("Listening on", httpServer.Addr)
+
+	<-done
+	log.Infoln("Stopping...")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer func() {
+		cancel()
+	}()
+
+	if err := httpServer.Shutdown(ctx); err != nil {
+		log.Fatalln("Server shutdown failed:", err)
+	}
 }

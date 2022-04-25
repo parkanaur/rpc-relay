@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
 	"flag"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"os"
+	"os/signal"
 	"rpc-relay/pkg/ingress"
 	"rpc-relay/pkg/relayutil"
+	"syscall"
+	"time"
 )
 
 var configPath string
@@ -26,8 +31,30 @@ func main() {
 		log.Fatalln("Unable to start ingress server:", err)
 	}
 
+	// Graceful shutdown
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+
+	httpServer := &http.Server{Addr: config.Ingress.GetHostWithPort()}
 	http.HandleFunc("/rpc", server.HandlerFunc)
-	addr := config.Ingress.GetHostWithPort()
-	log.Infoln("Listening on", addr)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalln("Error while serving HTTP:", err)
+		}
+	}()
+	log.Infoln("Listening on", httpServer.Addr)
+
+	<-done
+	log.Infoln("Stopping...")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer func() {
+		cancel()
+	}()
+
+	if err := httpServer.Shutdown(ctx); err != nil {
+		log.Fatalln("HTTP Server shutdown failed:", err)
+	}
+	if err := server.Cleanup(); err != nil {
+		log.Fatalln("Server shutdown failed:", err)
+	}
 }

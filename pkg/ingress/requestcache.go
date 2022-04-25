@@ -86,16 +86,17 @@ func (cache *RequestCache) DeleteStaleValues(timeToLive time.Duration) {
 	}
 }
 
-func (cache *RequestCache) InvalidateStaleValuesLoop(config *relayutil.Config, done <-chan bool) {
+func (cache *RequestCache) InvalidateStaleValuesLoop(config *relayutil.Config, done <-chan bool, wg *sync.WaitGroup) {
 	for {
 		select {
 		case <-done:
+			log.Infoln("Stopped cache")
+			wg.Done()
 			return
-		default:
+		case <-time.After(relayutil.GetDurationInSeconds(config.Ingress.InvalidateCacheLoopSleepPeriod)):
 			log.Infoln("Cleaning up cache, size:", len(cache.Cache))
 			cache.DeleteStaleValues(relayutil.GetDurationInSeconds(config.Ingress.ExpireCachedRequestThreshold))
 			log.Infoln("Cache invalidated, size:", len(cache.Cache))
-			time.Sleep(relayutil.GetDurationInSeconds(config.Ingress.InvalidateCacheLoopSleepPeriod))
 		}
 	}
 }

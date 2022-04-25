@@ -6,17 +6,50 @@ import (
 	"github.com/nats-io/nats.go"
 	log "github.com/sirupsen/logrus"
 	"rpc-relay/pkg/relayutil"
+	"sync"
 )
 
 type Server struct {
 	NATSConnection *nats.Conn
 	RPCClient      *rpc.Client
+	config         *relayutil.Config
+	wg             *sync.WaitGroup
+	done           chan bool
 }
 
 func (server *Server) Serve() {
-	for {
-
+	_, err := server.NATSConnection.QueueSubscribe(
+		server.config.NATS.SubjectName,
+		server.config.NATS.QueueName,
+		func(msg *nats.Msg) {
+			log.Infoln("Incoming RPC request:", string(msg.Data))
+			handleRPCRequest(&MsgContext{msg, server.RPCClient, server.config})
+		})
+	if err != nil {
+		log.Fatalln(err)
 	}
+
+	for {
+		select {
+		case <-server.done:
+			server.wg.Done()
+			return
+		default:
+
+		}
+	}
+}
+
+func (server *Server) Shutdown() error {
+	server.wg.Add(1)
+	if err := server.NATSConnection.Drain(); err != nil {
+		return err
+	}
+	server.done <- true
+	close(server.done)
+	server.wg.Wait()
+	log.Infoln("Stopped")
+	return nil
 }
 
 type MsgContext struct {
@@ -80,7 +113,10 @@ func handleRPCRequest(msgCtx *MsgContext) {
 }
 
 func NewServer(config *relayutil.Config) (*Server, error) {
-	nc, err := nats.Connect(config.NATS.ServerURL)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	done := make(chan bool)
+	nc, err := nats.Connect(config.NATS.ServerURL, nats.ClosedHandler(func(_ *nats.Conn) { wg.Done() }))
 	if err != nil {
 		return nil, err
 	}
@@ -93,12 +129,5 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 	}
 	log.Infoln("Dialed", url)
 
-	_, err = nc.QueueSubscribe(config.NATS.SubjectName, config.NATS.QueueName, func(msg *nats.Msg) {
-		go handleRPCRequest(&MsgContext{msg, rpcClient, config})
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &Server{NATSConnection: nc, RPCClient: rpcClient}, nil
+	return &Server{NATSConnection: nc, RPCClient: rpcClient, config: config, wg: &wg, done: done}, nil
 }
