@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 // JRPCServerConfig is a part of the config which holds config values for the JSONRPC server
@@ -42,6 +43,8 @@ type IngressConfig struct {
 	ExpireCachedRequestThreshold float64
 	// Timeout for NATS/RPC call to egress proxy, after which HTTP 504 is returned
 	NATSCallWaitTimeout float64
+	// Run cache invalidation each N seconds
+	InvalidateCacheLoopSleepPeriod float64
 }
 
 // GetHostWithPort Returns a host:port for the ingress server
@@ -74,6 +77,10 @@ type Config struct {
 	Ingress    IngressConfig
 	Egress     EgressConfig
 	NATS       NATSConfig
+}
+
+func GetDurationInSeconds(configSecondsValue float64) time.Duration {
+	return time.Duration(configSecondsValue * float64(time.Second))
 }
 
 // Parse takes a JSON file at configPath and attempts to parse its contents into the config struct

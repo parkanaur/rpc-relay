@@ -17,6 +17,10 @@ type RPCRequest struct {
 	JSONRPC string `json:"jsonrpc"`
 }
 
+func (call *RPCRequest) GetRequestKey() string {
+	return fmt.Sprintln(call.Method, call.Params)
+}
+
 func (call *RPCRequest) GetFullMethodName() string {
 	return fmt.Sprintf("%v_%v", call.MethodName, call.ModuleName)
 }

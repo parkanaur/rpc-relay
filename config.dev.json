@@ -16,6 +16,7 @@
     "refreshCachedRequestThreshold": 10.0,
     "expireCachedRequestThreshold": 60.0,
     "natsCallWaitTimeout": 5.0,
+    "invalidateCacheLoopSleepPeriod": 10.0,
     "host": "localhost",
     "port": 8000
   },

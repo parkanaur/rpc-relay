@@ -9,16 +9,38 @@ import (
 	"net/http"
 	"rpc-relay/pkg/egress"
 	"rpc-relay/pkg/relayutil"
-	"time"
 )
 
-func NewServer(config *relayutil.Config) (http.HandlerFunc, error) {
+type Server struct {
+	HandlerFunc  http.HandlerFunc
+	RequestCache *RequestCache
+	Done         chan bool
+}
+
+func SendRPCRequest(request *egress.RPCRequest, nc *nats.Conn, config *relayutil.Config) (*nats.Msg, error) {
+	msgData, err := json.Marshal(&request)
+	if err != nil {
+		return nil, err
+	}
+
+	return nc.Request(
+		config.NATS.GetSubjectName(request.ModuleName, request.MethodName),
+		msgData,
+		relayutil.GetDurationInSeconds(config.Ingress.NATSCallWaitTimeout))
+}
+
+func NewServer(config *relayutil.Config) (*Server, error) {
 	nc, err := nats.Connect(config.NATS.ServerURL)
 	if err != nil {
 		return nil, err
 	}
 
-	return func(w http.ResponseWriter, req *http.Request) {
+	done := make(chan bool)
+
+	reqCache := NewRequestCache()
+	go reqCache.InvalidateStaleValuesLoop(config, done)
+
+	handlerFunc := func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodPost {
 			http.Error(w, "invalid HTTP method: only POST is allowed", http.StatusMethodNotAllowed)
 			return
@@ -37,23 +59,40 @@ func NewServer(config *relayutil.Config) (http.HandlerFunc, error) {
 			return
 		}
 
-		msgData, err := json.Marshal(&rpcReq)
-		if err != nil {
-			log.Errorln("error during NATS encoding", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
+		reqKey := rpcReq.GetRequestKey()
+		if cachedRequest, ok := reqCache.GetRequestByKey(reqKey); ok {
+			var skipRenewalCheck bool
+			// Check if request is expired
+			if cachedRequest.IsRequestStale(
+				relayutil.GetDurationInSeconds(config.Ingress.ExpireCachedRequestThreshold)) {
+				err := reqCache.RemoveByKey(reqKey)
+				if err != nil {
+					log.Errorln("Failed to remove by key", reqKey, err)
+				}
+				skipRenewalCheck = true
+			}
+
+			// Check if request has to be renewed after the cached value is returned.
+			// Return request immediately if it's fresh enough.
+			if !skipRenewalCheck {
+				if !cachedRequest.IsRequestStale(
+					relayutil.GetDurationInSeconds(config.Ingress.RefreshCachedRequestThreshold)) {
+					fmt.Fprintf(w, string(cachedRequest.response))
+					return
+				}
+			}
 		}
 
-		msg, err := nc.Request(
-			config.NATS.GetSubjectName(rpcReq.ModuleName, rpcReq.MethodName),
-			msgData,
-			time.Duration(config.Ingress.NATSCallWaitTimeout*float64(time.Second)))
+		msg, err := SendRPCRequest(rpcReq, nc, config)
 		if err != nil {
 			log.Errorln("error during NATS RPC call", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprintf(w, string(msg.Data))
 
-	}, nil
+		defer reqCache.Add(rpcReq, msg.Data)
+		fmt.Fprintf(w, string(msg.Data))
+	}
+
+	return &Server{handlerFunc, reqCache, done}, nil
 }

@@ -26,7 +26,7 @@ func main() {
 		log.Fatalln("Unable to start ingress server:", err)
 	}
 
-	http.HandleFunc("/rpc", server)
+	http.HandleFunc("/rpc", server.HandlerFunc)
 	addr := config.Ingress.GetHostWithPort()
 	log.Infoln("Listening on", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
