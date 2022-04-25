@@ -13,10 +13,10 @@
     }
   },
   "ingress": {
-    "refreshCachedRequestThreshold": 10.0,
-    "expireCachedRequestThreshold": 60.0,
+    "refreshCachedRequestThreshold": 5.0,
+    "expireCachedRequestThreshold": 30.0,
     "natsCallWaitTimeout": 5.0,
-    "invalidateCacheLoopSleepPeriod": 10.0,
+    "invalidateCacheLoopSleepPeriod": 5.0,
     "host": "localhost",
     "port": 8000
   },

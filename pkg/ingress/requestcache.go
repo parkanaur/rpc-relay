@@ -18,7 +18,7 @@ type CachedRequest struct {
 }
 
 func (request *CachedRequest) IsRequestStale(timeToLive time.Duration) bool {
-	return request.ctime.Add(timeToLive).After(time.Now())
+	return request.ctime.Add(timeToLive).Before(time.Now())
 }
 
 type RequestCache struct {
@@ -76,10 +76,6 @@ func (cache *RequestCache) RequestKeyStale(requestKey string, timeToLive time.Du
 }
 
 func (cache *RequestCache) DeleteStaleValues(timeToLive time.Duration) {
-	// Additional locking is required if multiple loops are accessing the cache
-	cache.RLock()
-	defer cache.RUnlock()
-
 	for requestKey, cachedRequest := range cache.Cache {
 		if cachedRequest.IsRequestStale(timeToLive) {
 			err := cache.RemoveByKey(requestKey)
@@ -96,7 +92,9 @@ func (cache *RequestCache) InvalidateStaleValuesLoop(config *relayutil.Config, d
 		case <-done:
 			return
 		default:
+			log.Infoln("Cleaning up cache, size:", len(cache.Cache))
 			cache.DeleteStaleValues(relayutil.GetDurationInSeconds(config.Ingress.ExpireCachedRequestThreshold))
+			log.Infoln("Cache invalidated, size:", len(cache.Cache))
 			time.Sleep(relayutil.GetDurationInSeconds(config.Ingress.InvalidateCacheLoopSleepPeriod))
 		}
 	}
