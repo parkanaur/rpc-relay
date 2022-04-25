@@ -27,7 +27,7 @@ type MsgContext struct {
 
 func logAndSendError(errNum RPCErrorNum, msgCtx *MsgContext, info ...any) {
 	log.Errorln(info...)
-	// Info prevented from being returned to user on purpose to avoid disclosing sensitive
+	// Info is prevented from being returned to user on purpose to avoid disclosing sensitive
 	// error info
 	resp, err := json.Marshal(CreateErrorResponse(errNum))
 	if err != nil {
@@ -49,8 +49,8 @@ func handleRPCRequest(msgCtx *MsgContext) {
 		return
 	}
 	// Checking if method is available for calling
-	if _, ok := msgCtx.config.JRPCServer.EnabledRPCModules[rpcRequest.moduleName]; !ok {
-		logAndSendError(RPCErrorModuleNotEnabled, msgCtx, rpcRequest.moduleName)
+	if _, ok := msgCtx.config.JRPCServer.EnabledRPCModules[rpcRequest.ModuleName]; !ok {
+		logAndSendError(RPCErrorModuleNotEnabled, msgCtx, rpcRequest.ModuleName)
 		return
 	}
 
@@ -70,6 +70,7 @@ func handleRPCRequest(msgCtx *MsgContext) {
 			logAndSendError(RPCErrorInternalError, msgCtx, "Error during JSON response encoding", err)
 			return
 		}
+
 		err = msgCtx.msg.Respond(encodedResp)
 		if err != nil {
 			logAndSendError(RPCErrorInternalError, msgCtx, "Error during NATS response", err)

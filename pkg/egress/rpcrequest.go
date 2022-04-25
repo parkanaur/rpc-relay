@@ -7,18 +7,18 @@ import (
 )
 
 type RPCRequest struct {
-	moduleName string
-	methodName string
+	ModuleName string `json:"-"`
+	MethodName string `json:"-"`
 
 	// JSONRPC spec fields
-	Params  []any
-	ID      any
-	Method  string
-	JSONRPC string
+	Params  []any  `json:"params"`
+	ID      any    `json:"id"`
+	Method  string `json:"method"`
+	JSONRPC string `json:"jsonrpc"`
 }
 
 func (call *RPCRequest) GetFullMethodName() string {
-	return fmt.Sprintf("%v_%v", call.methodName, call.moduleName)
+	return fmt.Sprintf("%v_%v", call.MethodName, call.ModuleName)
 }
 
 func ParseCall(data []byte) (*RPCRequest, error) {
@@ -40,8 +40,10 @@ func ParseCall(data []byte) (*RPCRequest, error) {
 	if len(s) != 2 || s[0] == "" || s[1] == "" {
 		return nil, fmt.Errorf("bad RPC call: %v", call.Method)
 	}
-	call.moduleName = s[0]
-	call.methodName = s[1]
+	call.ModuleName = s[0]
+	call.MethodName = s[1]
+
+	// TODO: Param checking for a given method based on types defined in config
 
 	return &call, nil
 }

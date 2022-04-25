@@ -3,9 +3,9 @@ package egress
 import "fmt"
 
 type RPCResponse struct {
-	JSONRPC string
-	Result  any
-	ID      any
+	JSONRPC string `json:"jsonrpc"`
+	Result  any    `json:"result"`
+	ID      any    `json:"id"`
 }
 
 type RPCErrorNum int
@@ -30,14 +30,14 @@ var errorMap = map[RPCErrorNum]string{
 }
 
 type RPCError struct {
-	Code    RPCErrorNum
-	Message string
+	Code    RPCErrorNum `json:"code"`
+	Message string      `json:"message"`
 }
 
 type RPCErrorResponse struct {
-	JSONRPC string
-	ID      any
-	Error   *RPCError
+	JSONRPC string    `json:"jsonrpc"`
+	ID      any       `json:"id"`
+	Error   *RPCError `json:"error"`
 }
 
 func CreateResponse(result any, request *RPCRequest) *RPCResponse {

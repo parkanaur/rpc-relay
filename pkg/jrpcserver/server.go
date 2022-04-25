@@ -4,25 +4,10 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/rpc"
 	log "github.com/sirupsen/logrus"
-	"io"
 	"net/http"
 	"rpc-relay/pkg/jrpcserver/services"
 	"rpc-relay/pkg/relayutil"
 )
-
-// HTTPConn is an auxiliary structure for wrapping RPC calls into HTTP requests
-type HTTPConn struct {
-	in  io.Reader
-	out io.Writer
-}
-
-// Read
-func (c *HTTPConn) Read(p []byte) (n int, err error)  { return c.in.Read(p) }
-func (c *HTTPConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
-func (c *HTTPConn) Close() error                      { return nil }
-
-// JRPCServerHandler is an JSON-RPC server handler to be used as an argument to http.HandleFunc
-// type JRPCServerHandler func(w http.ResponseWriter, r *http.Request) error
 
 // NewServer returns an HTTP JSON-RPC handler to plug into http.
 func NewServer(config *relayutil.Config) (http.Handler, error) {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // JRPCServerConfig is a part of the config which holds config values for the JSONRPC server
@@ -39,6 +40,13 @@ type IngressConfig struct {
 	// Threshold value in seconds. All cached requests are expired if they're stored in the cache for longer
 	// than threshold value
 	ExpireCachedRequestThreshold float64
+	// Timeout for NATS/RPC call to egress proxy, after which HTTP 504 is returned
+	NATSCallWaitTimeout float64
+}
+
+// GetHostWithPort Returns a host:port for the ingress server
+func (config *IngressConfig) GetHostWithPort() string {
+	return fmt.Sprintf("%v:%d", config.Host, config.Port)
 }
 
 // EgressConfig is a part of the config which holds config values for the egress proxy
@@ -52,6 +60,12 @@ type NATSConfig struct {
 	ServerURL   string
 	SubjectName string
 	QueueName   string
+}
+
+func (config *NATSConfig) GetSubjectName(moduleName, methodName string) string {
+	subj := strings.Replace(config.SubjectName, "*", moduleName, 1)
+	subj = strings.Replace(subj, "*", methodName, 1)
+	return subj
 }
 
 // Config is a struct for holding configuration values for all proxies and servers

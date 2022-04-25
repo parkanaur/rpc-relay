@@ -2,11 +2,10 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"github.com/nats-io/nats.go"
 	log "github.com/sirupsen/logrus"
+	"net/http"
+	"rpc-relay/pkg/ingress"
 	"rpc-relay/pkg/relayutil"
-	"time"
 )
 
 var configPath string
@@ -22,16 +21,13 @@ func main() {
 		log.Fatalln("Bad config file:", configPath, err)
 	}
 
-	n, err := nats.Connect(config.NATS.ServerURL)
+	server, err := ingress.NewServer(config)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("Unable to start ingress server:", err)
 	}
 
-	msg, err := n.Request("jrpc.calculateSum.calculateSum",
-		[]byte("{\"method\": \"calculateSum_calculateSum\", \"params\":[0, 2]}"),
-		time.Second*3)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	fmt.Println(string(msg.Data))
+	http.HandleFunc("/rpc", server)
+	addr := config.Ingress.GetHostWithPort()
+	log.Infoln("Listening on", addr)
+	log.Fatal(http.ListenAndServe(addr, nil))
 }
