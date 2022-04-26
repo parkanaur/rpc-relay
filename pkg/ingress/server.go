@@ -12,26 +12,37 @@ import (
 	"sync"
 )
 
+// Server accepts HTTP JSON-RPC requests and proxies them to egress server via NATS
+// It also holds the requets cache and runs periodic cache invalidation
 type Server struct {
-	HandlerFunc  http.HandlerFunc
+	// Handler for Go HTTP server
+	HandlerFunc http.HandlerFunc
+	// RPC request cache
 	RequestCache *RequestCache
-	natsConn     *nats.Conn
-	done         chan bool
-	wg           *sync.WaitGroup
+	// NATS connection
+	natsConn *nats.Conn
+	// Channel which is written to during shutdown and read from by the shutdown function
+	done chan bool
+	// Waitgroup for NATS connection draining handling
+	wg *sync.WaitGroup
+	// Server config
+	config *relayutil.Config
 }
 
-func SendRPCRequest(request *egress.RPCRequest, nc *nats.Conn, config *relayutil.Config) (*nats.Msg, error) {
+// SendRPCRequest creates a NATS request to egress and returns the NATS reply
+func (server *Server) SendRPCRequest(request *egress.RPCRequest) (*nats.Msg, error) {
 	msgData, err := json.Marshal(&request)
 	if err != nil {
 		return nil, err
 	}
 
-	return nc.Request(
-		config.NATS.GetSubjectName(request.ModuleName, request.MethodName),
+	return server.natsConn.Request(
+		server.config.NATS.GetSubjectName(request.ModuleName, request.MethodName),
 		msgData,
-		relayutil.GetDurationInSeconds(config.Ingress.NATSCallWaitTimeout))
+		relayutil.GetDurationInSeconds(server.config.Ingress.NATSCallWaitTimeout))
 }
 
+// NewServer creates a new ingress server and initializes the NATS connection
 func NewServer(config *relayutil.Config) (*Server, error) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -46,6 +57,7 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 	reqCache := NewRequestCache()
 	go reqCache.InvalidateStaleValuesLoop(config, done, &wg)
 
+	server := &Server{nil, reqCache, nc, done, &wg, config}
 	handlerFunc := func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodPost {
 			http.Error(w, "invalid HTTP method: only POST is allowed", http.StatusMethodNotAllowed)
@@ -95,7 +107,7 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 			}
 		}
 
-		msg, err := SendRPCRequest(rpcReq, nc, config)
+		msg, err := server.SendRPCRequest(rpcReq)
 		if err != nil {
 			log.Errorln("error during NATS RPC call", err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -107,9 +119,12 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 		fmt.Fprintf(w, string(msg.Data))
 	}
 
-	return &Server{handlerFunc, reqCache, nc, done, &wg}, nil
+	server.HandlerFunc = handlerFunc
+
+	return server, nil
 }
 
+// Cleanup stops the cache invalidation goroutine and drains the NATS connection
 func (server *Server) Cleanup() error {
 	server.wg.Add(1)
 	log.Infoln("Stopping cache invalidation routine...")

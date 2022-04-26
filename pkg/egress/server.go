@@ -9,14 +9,20 @@ import (
 	"sync"
 )
 
+// Server is a structure for the egress server holding the NATS listener and a client for JSON-RPC calls
 type Server struct {
+	// NATS listener. These are launched in an RPC queue (see config)
 	NATSConnection *nats.Conn
-	RPCClient      *rpc.Client
-	config         *relayutil.Config
-	wg             *sync.WaitGroup
+	// Client for sending correct requests to the JSON-RPC server
+	RPCClient *rpc.Client
+	// Server config
+	config *relayutil.Config
+	// Used during draining of the NATS connection
+	wg *sync.WaitGroup
 }
 
-func (server *Server) Start() {
+// Start subscribes the NATS connection to RPC general subject/queue using the request handler
+func (server *Server) Start() error {
 	_, err := server.NATSConnection.QueueSubscribe(
 		server.config.NATS.SubjectName,
 		server.config.NATS.QueueName,
@@ -25,15 +31,18 @@ func (server *Server) Start() {
 			handleRPCRequest(&MsgContext{msg, server.RPCClient, server.config})
 		})
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
+	return nil
 }
 
+// Shutdown drains the NATS connection and closes the RPC client
 func (server *Server) Shutdown() error {
 	if err := server.NATSConnection.Drain(); err != nil {
 		return err
 	}
 
+	server.RPCClient.Close()
 	// waitgroup is used for NATS connection; Add() is called during server initialization and
 	// Done() is called in the callback for NATS connection
 	server.wg.Wait()
@@ -41,12 +50,14 @@ func (server *Server) Shutdown() error {
 	return nil
 }
 
+// MsgContext is an auxiliary structure for passing around certain useful variables
 type MsgContext struct {
 	msg       *nats.Msg
 	rpcClient *rpc.Client
 	config    *relayutil.Config
 }
 
+// logAndSendError logs the error to stderr and returns an RPCErrorResponse to the ingress server
 func logAndSendError(errNum RPCErrorNum, msgCtx *MsgContext, info ...any) {
 	log.Errorln(info...)
 	// Info is prevented from being returned to user on purpose to avoid disclosing sensitive
@@ -64,6 +75,7 @@ func logAndSendError(errNum RPCErrorNum, msgCtx *MsgContext, info ...any) {
 	}
 }
 
+// handleRPCRequest handles incoming NATS messages, sends RPC requests and replies to NATS messages
 func handleRPCRequest(msgCtx *MsgContext) {
 	rpcRequest, err := ParseCall(msgCtx.msg.Data)
 	if err != nil {
@@ -93,6 +105,7 @@ func handleRPCRequest(msgCtx *MsgContext) {
 			return
 		}
 
+		// NATS reply
 		err = msgCtx.msg.Respond(encodedResp)
 		if err != nil {
 			logAndSendError(RPCErrorInternalError, msgCtx, "Error during NATS response", err)
@@ -101,9 +114,11 @@ func handleRPCRequest(msgCtx *MsgContext) {
 	}
 }
 
+// NewServer creates a new egress server from the config
 func NewServer(config *relayutil.Config) (*Server, error) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
+	// Init NATS
 	nc, err := nats.Connect(config.NATS.ServerURL, nats.ClosedHandler(func(_ *nats.Conn) { wg.Done() }))
 	if err != nil {
 		return nil, err

@@ -65,6 +65,7 @@ type NATSConfig struct {
 	QueueName   string
 }
 
+// GetSubjectName returns a full NATS subject given RPC call's method/module names
 func (config *NATSConfig) GetSubjectName(moduleName, methodName string) string {
 	subj := strings.Replace(config.SubjectName, "*", moduleName, 1)
 	subj = strings.Replace(subj, "*", methodName, 1)
@@ -79,6 +80,7 @@ type Config struct {
 	NATS       NATSConfig
 }
 
+// GetDurationInSeconds converts a float value for seconds to time.Duration
 func GetDurationInSeconds(configSecondsValue float64) time.Duration {
 	return time.Duration(configSecondsValue * float64(time.Second))
 }

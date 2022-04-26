@@ -32,9 +32,10 @@ func main() {
 		log.Fatalln("Could not initialize egress server:", err)
 	}
 
-	go func() {
-		server.Start()
-	}()
+	if err := server.Start(); err != nil {
+		log.Fatalln("Error while starting egress server: ", err)
+	}
+
 	<-done
 	log.Infoln("Stopping...")
 	if err := server.Shutdown(); err != nil {

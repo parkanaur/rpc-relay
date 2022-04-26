@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+// CachedRequest holds the RPC request as well as the time it was added to the queue.
+// Response is also cached here as bytes
 type CachedRequest struct {
 	ctime   time.Time
 	request *egress.RPCRequest
@@ -17,22 +19,28 @@ type CachedRequest struct {
 	response []byte
 }
 
+// IsRequestStale compares the request cache time to current time and checks if it has exceeded the given
+// time to live
 func (request *CachedRequest) IsRequestStale(timeToLive time.Duration) bool {
 	return request.ctime.Add(timeToLive).Before(time.Now())
 }
 
+// RequestCache is a wrapper around the map which maps request keys (see RPCRequest) to
+// corresponding cached requests
 type RequestCache struct {
 	sync.RWMutex
 	// TODO: think of using sync.Map?
 	Cache map[string]*CachedRequest
 }
 
+// NewRequestCache returns an empty request cache
 func NewRequestCache() *RequestCache {
 	return &RequestCache{
 		Cache: make(map[string]*CachedRequest),
 	}
 }
 
+// Add adds a new RPCRequest and its response to the cache
 func (cache *RequestCache) Add(request *egress.RPCRequest, response []byte) {
 	cache.Lock()
 	defer cache.Unlock()
@@ -40,6 +48,7 @@ func (cache *RequestCache) Add(request *egress.RPCRequest, response []byte) {
 	cache.Cache[request.GetRequestKey()] = &CachedRequest{time.Now(), request, response}
 }
 
+// GetRequestByKey searches for and returns the cached request by its key
 func (cache *RequestCache) GetRequestByKey(requestKey string) (*CachedRequest, bool) {
 	cache.RLock()
 	defer cache.RUnlock()
@@ -48,10 +57,12 @@ func (cache *RequestCache) GetRequestByKey(requestKey string) (*CachedRequest, b
 	return request, ok
 }
 
+// GetRequestByValue searches for and returns the cached request by its key
 func (cache *RequestCache) GetRequestByValue(request *egress.RPCRequest) (*CachedRequest, bool) {
 	return cache.GetRequestByKey(request.GetRequestKey())
 }
 
+// RemoveByKey removes a request from the cache by its key
 func (cache *RequestCache) RemoveByKey(requestKey string) error {
 	if _, ok := cache.GetRequestByKey(requestKey); !ok {
 		return fmt.Errorf("request not found in cache")
@@ -63,10 +74,12 @@ func (cache *RequestCache) RemoveByKey(requestKey string) error {
 	return nil
 }
 
+// RemoveByValue removes a request from the cache by its key
 func (cache *RequestCache) RemoveByValue(request *egress.RPCRequest) error {
 	return cache.RemoveByKey(request.GetRequestKey())
 }
 
+// RequestKeyStale checks if the request pointed to by its key has exceeded the timeToLive duration
 func (cache *RequestCache) RequestKeyStale(requestKey string, timeToLive time.Duration) bool {
 	cachedRequest, ok := cache.GetRequestByKey(requestKey)
 	if !ok {
@@ -75,6 +88,7 @@ func (cache *RequestCache) RequestKeyStale(requestKey string, timeToLive time.Du
 	return cachedRequest.IsRequestStale(timeToLive)
 }
 
+// DeleteStaleValues runs through the whole cache and removes the old enough entries
 func (cache *RequestCache) DeleteStaleValues(timeToLive time.Duration) {
 	for requestKey, cachedRequest := range cache.Cache {
 		if cachedRequest.IsRequestStale(timeToLive) {
@@ -86,6 +100,8 @@ func (cache *RequestCache) DeleteStaleValues(timeToLive time.Duration) {
 	}
 }
 
+// InvalidateStaleValuesLoop runs the DeleteStaleValues method every N seconds,
+// where N is defined by config's ingress.expireCachedRequestThreshold key
 func (cache *RequestCache) InvalidateStaleValuesLoop(config *relayutil.Config, done <-chan bool, wg *sync.WaitGroup) {
 	for {
 		select {
