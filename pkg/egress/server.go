@@ -14,10 +14,9 @@ type Server struct {
 	RPCClient      *rpc.Client
 	config         *relayutil.Config
 	wg             *sync.WaitGroup
-	done           chan bool
 }
 
-func (server *Server) Serve() {
+func (server *Server) Start() {
 	_, err := server.NATSConnection.QueueSubscribe(
 		server.config.NATS.SubjectName,
 		server.config.NATS.QueueName,
@@ -28,25 +27,15 @@ func (server *Server) Serve() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-
-	for {
-		select {
-		case <-server.done:
-			server.wg.Done()
-			return
-		default:
-
-		}
-	}
 }
 
 func (server *Server) Shutdown() error {
-	server.wg.Add(1)
 	if err := server.NATSConnection.Drain(); err != nil {
 		return err
 	}
-	server.done <- true
-	close(server.done)
+
+	// waitgroup is used for NATS connection; Add() is called during server initialization and
+	// Done() is called in the callback for NATS connection
 	server.wg.Wait()
 	log.Infoln("Stopped")
 	return nil
@@ -115,7 +104,6 @@ func handleRPCRequest(msgCtx *MsgContext) {
 func NewServer(config *relayutil.Config) (*Server, error) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	done := make(chan bool)
 	nc, err := nats.Connect(config.NATS.ServerURL, nats.ClosedHandler(func(_ *nats.Conn) { wg.Done() }))
 	if err != nil {
 		return nil, err
@@ -129,5 +117,5 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 	}
 	log.Infoln("Dialed", url)
 
-	return &Server{NATSConnection: nc, RPCClient: rpcClient, config: config, wg: &wg, done: done}, nil
+	return &Server{NATSConnection: nc, RPCClient: rpcClient, config: config, wg: &wg}, nil
 }

@@ -33,7 +33,7 @@ func main() {
 	}
 
 	go func() {
-		server.Serve()
+		server.Start()
 	}()
 	<-done
 	log.Infoln("Stopping...")

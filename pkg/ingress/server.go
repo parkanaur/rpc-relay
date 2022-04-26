@@ -61,7 +61,7 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 
 		rpcReq, err := egress.ParseCall(body)
 		if err != nil {
-			http.Error(w, "invalid JSON format", http.StatusBadRequest)
+			http.Error(w, fmt.Sprintln("invalid JSON format:", err), http.StatusBadRequest)
 			return
 		}
 
