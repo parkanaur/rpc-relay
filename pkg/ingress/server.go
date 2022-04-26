@@ -84,7 +84,7 @@ func (server *Server) HandlerFunc() http.HandlerFunc {
 				if !cachedRequest.IsRequestStale(
 					relayutil.GetDurationInSeconds(server.config.Ingress.RefreshCachedRequestThreshold)) {
 					log.Infoln("Returned cached request from cache:", reqKey)
-					fmt.Fprintf(w, string(cachedRequest.response))
+					w.Write(cachedRequest.response)
 					return
 				}
 			}
@@ -99,7 +99,7 @@ func (server *Server) HandlerFunc() http.HandlerFunc {
 
 		defer server.RequestCache.Add(rpcReq, msg.Data)
 		log.Infoln("Added request to cache:", reqKey)
-		fmt.Fprintf(w, string(msg.Data))
+		w.Write(msg.Data)
 	}
 }
 
@@ -115,8 +115,8 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 
 	done := make(chan bool)
 
-	reqCache := NewRequestCache()
-	go reqCache.InvalidateStaleValuesLoop(config, done, &wg)
+	reqCache := NewRequestCache(config)
+	reqCache.Start()
 
 	server := &Server{reqCache, nc, done, &wg, config}
 
@@ -125,10 +125,8 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 
 // Cleanup stops the cache invalidation goroutine and drains the NATS connection
 func (server *Server) Cleanup() error {
-	server.wg.Add(1)
 	log.Infoln("Stopping cache invalidation routine...")
-	server.done <- true
-	close(server.done)
+	server.RequestCache.Stop()
 
 	log.Infoln("Draining NATS connection...")
 	if err := server.natsConn.Drain(); err != nil {
