@@ -28,7 +28,7 @@ func (server *Server) Start() error {
 		server.config.NATS.QueueName,
 		func(msg *nats.Msg) {
 			log.Infoln("Incoming RPC request:", string(msg.Data))
-			handleRPCRequest(&MsgContext{msg, server.RPCClient, server.config})
+			go handleRPCRequest(&MsgContext{msg, server.RPCClient, server.config})
 		})
 	if err != nil {
 		return err
