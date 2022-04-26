@@ -21,21 +21,6 @@ type Server struct {
 	wg *sync.WaitGroup
 }
 
-// Start subscribes the NATS connection to RPC general subject/queue using the request handler
-func (server *Server) Start() error {
-	_, err := server.NATSConnection.QueueSubscribe(
-		server.config.NATS.SubjectName,
-		server.config.NATS.QueueName,
-		func(msg *nats.Msg) {
-			log.Infoln("Incoming RPC request:", string(msg.Data))
-			go handleRPCRequest(&MsgContext{msg, server.RPCClient, server.config})
-		})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // Shutdown drains the NATS connection and closes the RPC client
 func (server *Server) Shutdown() error {
 	if err := server.NATSConnection.Drain(); err != nil {
@@ -128,9 +113,20 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 	url := config.JRPCServer.GetFullEndpointURL()
 	rpcClient, err := rpc.DialHTTP(url)
 	if err != nil {
-		log.Fatalln("Could not start RPC client for", url, err)
+		return nil, err
 	}
 	log.Infoln("Dialed", url)
+
+	_, err = nc.QueueSubscribe(
+		config.NATS.SubjectName,
+		config.NATS.QueueName,
+		func(msg *nats.Msg) {
+			log.Infoln("Incoming RPC request:", string(msg.Data))
+			go handleRPCRequest(&MsgContext{msg, rpcClient, config})
+		})
+	if err != nil {
+		return nil, err
+	}
 
 	return &Server{NATSConnection: nc, RPCClient: rpcClient, config: config, wg: &wg}, nil
 }
