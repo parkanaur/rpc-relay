@@ -15,8 +15,6 @@ import (
 // Server accepts HTTP JSON-RPC requests and proxies them to egress server via NATS
 // It also holds the requets cache and runs periodic cache invalidation
 type Server struct {
-	// Handler for Go HTTP server
-	HandlerFunc http.HandlerFunc
 	// RPC request cache
 	RequestCache *RequestCache
 	// NATS connection
@@ -42,23 +40,8 @@ func (server *Server) SendRPCRequest(request *egress.RPCRequest) (*nats.Msg, err
 		relayutil.GetDurationInSeconds(server.config.Ingress.NATSCallWaitTimeout))
 }
 
-// NewServer creates a new ingress server and initializes the NATS connection
-func NewServer(config *relayutil.Config) (*Server, error) {
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	nc, err := nats.Connect(config.NATS.ServerURL, nats.ClosedHandler(func(_ *nats.Conn) { wg.Done() }))
-	if err != nil {
-		return nil, err
-	}
-
-	done := make(chan bool)
-
-	reqCache := NewRequestCache()
-	go reqCache.InvalidateStaleValuesLoop(config, done, &wg)
-
-	server := &Server{nil, reqCache, nc, done, &wg, config}
-	handlerFunc := func(w http.ResponseWriter, req *http.Request) {
+func (server *Server) HandlerFunc() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodPost {
 			http.Error(w, "invalid HTTP method: only POST is allowed", http.StatusMethodNotAllowed)
 			return
@@ -78,12 +61,12 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 		}
 
 		reqKey := rpcReq.GetRequestKey()
-		if cachedRequest, ok := reqCache.GetRequestByKey(reqKey); ok {
+		if cachedRequest, ok := server.RequestCache.GetRequestByKey(reqKey); ok {
 			var skipRenewalCheck bool
 			// Check if request is expired
 			if cachedRequest.IsRequestStale(
-				relayutil.GetDurationInSeconds(config.Ingress.ExpireCachedRequestThreshold)) {
-				err := reqCache.RemoveByKey(reqKey)
+				relayutil.GetDurationInSeconds(server.config.Ingress.ExpireCachedRequestThreshold)) {
+				err := server.RequestCache.RemoveByKey(reqKey)
 				if err != nil {
 					log.Errorln("Failed to remove by key", reqKey, err)
 				}
@@ -99,7 +82,7 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 			// after the user has already gotten their old result, but I assume this is not what was required.
 			if !skipRenewalCheck {
 				if !cachedRequest.IsRequestStale(
-					relayutil.GetDurationInSeconds(config.Ingress.RefreshCachedRequestThreshold)) {
+					relayutil.GetDurationInSeconds(server.config.Ingress.RefreshCachedRequestThreshold)) {
 					log.Infoln("Returned cached request from cache:", reqKey)
 					fmt.Fprintf(w, string(cachedRequest.response))
 					return
@@ -114,12 +97,28 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 			return
 		}
 
-		defer reqCache.Add(rpcReq, msg.Data)
+		defer server.RequestCache.Add(rpcReq, msg.Data)
 		log.Infoln("Added request to cache:", reqKey)
 		fmt.Fprintf(w, string(msg.Data))
 	}
+}
 
-	server.HandlerFunc = handlerFunc
+// NewServer creates a new ingress server and initializes the NATS connection
+func NewServer(config *relayutil.Config) (*Server, error) {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	nc, err := nats.Connect(config.NATS.ServerURL, nats.ClosedHandler(func(_ *nats.Conn) { wg.Done() }))
+	if err != nil {
+		return nil, err
+	}
+
+	done := make(chan bool)
+
+	reqCache := NewRequestCache()
+	go reqCache.InvalidateStaleValuesLoop(config, done, &wg)
+
+	server := &Server{reqCache, nc, done, &wg, config}
 
 	return server, nil
 }
