@@ -1,4 +1,4 @@
-module rpc-relay
+module github.com/parkanaur/rpc-relay
 
 go 1.18
 

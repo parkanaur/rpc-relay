@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
+	"github.com/parkanaur/rpc-relay/pkg/egress"
+	"github.com/parkanaur/rpc-relay/pkg/relayutil"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
-	"rpc-relay/pkg/egress"
-	"rpc-relay/pkg/relayutil"
 	"syscall"
 )
 

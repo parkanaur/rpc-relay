@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/nats-io/nats.go"
+	"github.com/parkanaur/rpc-relay/pkg/egress"
+	"github.com/parkanaur/rpc-relay/pkg/relayutil"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
-	"rpc-relay/pkg/egress"
-	"rpc-relay/pkg/relayutil"
 	"sync"
 )
 
@@ -89,6 +89,9 @@ func (server *Server) HandlerFunc() http.HandlerFunc {
 				}
 			}
 		}
+
+		// TODO: Check if response is an ErrorResponse AND the error code is for an internal error.
+		// Return a http.Error with HTTP 500 in this case. Forward the error RPC response as usual otherwise.
 
 		msg, err := server.SendRPCRequest(rpcReq)
 		if err != nil {

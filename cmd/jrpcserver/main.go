@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/parkanaur/rpc-relay/pkg/jrpcserver"
+	"github.com/parkanaur/rpc-relay/pkg/relayutil"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"os/signal"
-	"rpc-relay/pkg/jrpcserver"
-	"rpc-relay/pkg/relayutil"
 	"syscall"
 )
 

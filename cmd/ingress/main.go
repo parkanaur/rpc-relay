@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/parkanaur/rpc-relay/pkg/ingress"
+	"github.com/parkanaur/rpc-relay/pkg/relayutil"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"os/signal"
-	"rpc-relay/pkg/ingress"
-	"rpc-relay/pkg/relayutil"
 	"syscall"
 	"time"
 )

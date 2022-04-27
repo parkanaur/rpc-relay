@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/nats-io/nats.go"
+	"github.com/parkanaur/rpc-relay/pkg/relayutil"
 	log "github.com/sirupsen/logrus"
-	"rpc-relay/pkg/relayutil"
 	"sync"
 )
 

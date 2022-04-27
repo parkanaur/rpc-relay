@@ -2,9 +2,9 @@ package ingress
 
 import (
 	"fmt"
+	"github.com/parkanaur/rpc-relay/pkg/egress"
+	"github.com/parkanaur/rpc-relay/pkg/relayutil"
 	log "github.com/sirupsen/logrus"
-	"rpc-relay/pkg/egress"
-	"rpc-relay/pkg/relayutil"
 	"sync"
 	"time"
 )

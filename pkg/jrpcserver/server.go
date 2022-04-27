@@ -3,10 +3,10 @@ package jrpcserver
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/parkanaur/rpc-relay/pkg/jrpcserver/services"
+	"github.com/parkanaur/rpc-relay/pkg/relayutil"
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"rpc-relay/pkg/jrpcserver/services"
-	"rpc-relay/pkg/relayutil"
 )
 
 // NewServer returns an HTTP JSON-RPC handler to plug into http.
