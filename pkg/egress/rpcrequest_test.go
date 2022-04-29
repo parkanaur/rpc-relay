@@ -2,6 +2,7 @@ package egress
 
 import (
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -49,18 +50,14 @@ func TestRPCRequest_GetFullMethodName(t *testing.T) {
 	r := NewDummyRPCRequest()
 	want := "dummyModule_dummyMethod"
 	actual := r.GetFullMethodName()
-	if actual != want {
-		t.Fatal("invalid full method name:", want, actual)
-	}
+	assert.Equal(t, want, actual, "invalid full method name")
 }
 
 func TestParseCall(t *testing.T) {
 	data := []byte(`{"id": 1, "jsonrpc": "2.0", "method": "dummyModule_dummyMethod", "params": [1,2]}`)
 	want := NewDummyRPCRequest()
 	actual, err := ParseCall(data)
-	if err != nil {
-		t.Fatal("error in parse call when there shouldn't be any", err)
-	}
+	assert.NoErrorf(t, err, "error in parse call when there shouldn't be any")
 	if cmp.Equal(*want, *actual) {
 		t.Fatal("invalid parse call result", want, actual)
 	}
@@ -75,8 +72,6 @@ func TestParseCallInvalidRequests(t *testing.T) {
 	}
 	for _, badCase := range cases {
 		_, err := ParseCall([]byte(badCase))
-		if err == nil {
-			t.Fatal("no error in parse call when there should be one", badCase)
-		}
+		assert.Errorf(t, err, "no error in parse call when there should be one")
 	}
 }

@@ -43,7 +43,7 @@ func (call *RPCRequest) GetRequestKey() string {
 
 // GetFullMethodName forms a full method name from its module/method parts
 func (call *RPCRequest) GetFullMethodName() string {
-	return fmt.Sprintf("%v_%v", call.MethodName, call.ModuleName)
+	return fmt.Sprintf("%v_%v", call.ModuleName, call.MethodName)
 }
 
 // ParseCall serializes an incoming RPC request into the actual RPCRequest object

@@ -1,6 +1,9 @@
 package egress
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // RPCResponse holds the JSON-RPC 2.0 spec response object, provided the request/response
 // were without errors
@@ -67,9 +70,17 @@ func CreateResponse(result any, request *RPCRequest) *RPCResponse {
 
 // CreateErrorResponse serializes an error into a RPCErrorResponse
 func CreateErrorResponse(num RPCErrorNum, info ...any) *RPCErrorResponse {
+	var errMsg strings.Builder
+	// We can pass any type of info, but usually the type is string, therefore spaces are not added
+	// by default - see godoc for Sprint/Sprintf
+	errMsg.WriteString(fmt.Sprintf("%v", errorResponseMap[num]))
+	for _, val := range info {
+		errMsg.WriteString(fmt.Sprintf(" %v", val))
+	}
+
 	return &RPCErrorResponse{
 		JSONRPC: "2.0",
 		ID:      nil,
-		Error:   &RPCError{num, errorResponseMap[num] + fmt.Sprintln(info...)},
+		Error:   &RPCError{num, errMsg.String()},
 	}
 }
