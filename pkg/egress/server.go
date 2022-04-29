@@ -6,6 +6,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/parkanaur/rpc-relay/pkg/relayutil"
 	log "github.com/sirupsen/logrus"
+	"strings"
 	"sync"
 )
 
@@ -77,7 +78,16 @@ func handleRPCRequest(msgCtx *MsgContext) {
 	var result any
 	err = msgCtx.rpcClient.Call(&result, rpcRequest.GetFullMethodName(), rpcRequest.Params...)
 	if err != nil {
-		logAndSendError(RPCErrorInternalError, msgCtx, err)
+		errStr := err.Error()
+		var rpcErrNum RPCErrorNum = RPCErrorInternalError
+
+		// Filter out errors caused by user's incorrect requests
+		for errorPrefix, errorNum := range RPCErrorMap {
+			if strings.HasPrefix(errStr, errorPrefix) {
+				rpcErrNum = errorNum
+			}
+		}
+		logAndSendError(rpcErrNum, msgCtx, err)
 		return
 	}
 

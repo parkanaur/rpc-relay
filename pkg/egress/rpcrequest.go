@@ -23,8 +23,22 @@ type RPCRequest struct {
 // GetRequestKey returns a string to be used as a request cache key. The key uniquely identifies
 // the request by its method name and parameters
 // calculateSum(1,2) is different from calculateSum(2,1)
+// calculateSum("1", 2) is different from calculateSum(1, 2)
 func (call *RPCRequest) GetRequestKey() string {
-	return fmt.Sprintln(call.Method, call.Params)
+	var sb strings.Builder
+	sb.WriteString(call.Method)
+
+	for _, v := range call.Params {
+		var writeFmt string
+		if _, ok := v.(string); ok {
+			writeFmt = "%q"
+		} else {
+			writeFmt = "%#v"
+		}
+		sb.WriteString(fmt.Sprintf(writeFmt, v))
+	}
+
+	return sb.String()
 }
 
 // GetFullMethodName forms a full method name from its module/method parts

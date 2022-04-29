@@ -23,7 +23,17 @@ const (
 	RPCErrorModuleNotEnabled             = 101
 )
 
-var errorMap = map[RPCErrorNum]string{
+const (
+	RPCPrefixInvalidArgument string = "invalid argument"
+)
+
+// RPCErrorMap is used for checking responses from jrpcserver/geth JSONRPC server
+var RPCErrorMap = map[string]RPCErrorNum{
+	RPCPrefixInvalidArgument: RPCErrorInvalidParams,
+}
+
+// Used for responding to ingress server
+var errorResponseMap = map[RPCErrorNum]string{
 	RPCErrorNotWellFormed:    "not well formed",
 	RPCErrorInvalidRequest:   "invalid request",
 	RPCErrorMethodNotFound:   "method not found",
@@ -60,6 +70,6 @@ func CreateErrorResponse(num RPCErrorNum, info ...any) *RPCErrorResponse {
 	return &RPCErrorResponse{
 		JSONRPC: "2.0",
 		ID:      nil,
-		Error:   &RPCError{num, errorMap[num] + fmt.Sprintln(info...)},
+		Error:   &RPCError{num, errorResponseMap[num] + fmt.Sprintln(info...)},
 	}
 }
