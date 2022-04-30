@@ -73,6 +73,9 @@ func handleRPCRequest(msgCtx *MsgContext) {
 		logAndSendError(RPCErrorModuleNotEnabled, msgCtx, rpcRequest.ModuleName)
 		return
 	}
+	// TODO: implement check for whether the method is enabled (via EnabledRPCMethods dict values for
+	// given module). Possibly requires rewriting the method list to be a map for
+	// faster checks.
 
 	// Actual rpc call
 	var result any

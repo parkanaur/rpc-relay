@@ -1,0 +1,15 @@
+#!/bin/sh
+
+BASEDIR=$(dirname $(realpath "$0"))
+BUILDDIR="${BASEDIR}/../bin"
+SRCDIR="${BASEDIR}/../cmd"
+
+SERVERS=`echo "jrpcserver egress ingress"`
+echo "Building rpc-relay..."
+
+for srv in $SERVERS; do
+  echo "Building ${srv}..."
+  go build -o "${BUILDDIR}/${srv}" "${SRCDIR}/${srv}/main.go"
+done
+
+echo "Build finished"

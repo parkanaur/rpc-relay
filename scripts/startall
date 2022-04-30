@@ -1,0 +1,12 @@
+#!/bin/sh
+
+BASEDIR=$(dirname $(realpath "$0"))
+CONFIGARG="-configPath ${BASEDIR}/../config.dev.json"
+
+pgrep nats-server >/dev/null || echo "nats-server might not be running"
+
+SERVERS=`echo "jrpcserver egress ingress"`
+for srv in $SERVERS; do
+  eval "${BASEDIR}/../bin/${srv} ${CONFIGARG}" &
+done
+

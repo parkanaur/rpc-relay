@@ -20,7 +20,7 @@ func init() {
 
 func main() {
 	flag.Parse()
-	config, err := relayutil.NewConfig(&configPath)
+	config, err := relayutil.NewConfig(configPath)
 	if err != nil {
 		log.Fatalln("Bad config file:", configPath, err)
 	}

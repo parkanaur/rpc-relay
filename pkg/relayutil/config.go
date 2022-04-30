@@ -36,12 +36,12 @@ type IngressConfig struct {
 	Host string
 	Port int
 	// Threshold value in seconds. If less time than threshold had passed before a cached request was retrieved,
-	// a new request is not made (the cached value is still immediately returned either way)
+	// a new request is not made.
 	RefreshCachedRequestThreshold float64
 	// Threshold value in seconds. All cached requests are expired if they're stored in the cache for longer
 	// than threshold value
 	ExpireCachedRequestThreshold float64
-	// Timeout for NATS/RPC call to egress proxy, after which HTTP 504 is returned
+	// Timeout for NATS/RPC call to egress proxy
 	NATSCallWaitTimeout float64
 	// Run cache invalidation each N seconds
 	InvalidateCacheLoopSleepPeriod float64
@@ -86,8 +86,8 @@ func GetDurationInSeconds(configSecondsValue float64) time.Duration {
 }
 
 // Parse takes a JSON file at configPath and attempts to parse its contents into the config struct
-func (config *Config) Parse(configPath *string) error {
-	jsonFile, err := os.Open(*configPath)
+func (config *Config) Parse(configPath string) error {
+	jsonFile, err := os.Open(configPath)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func (config *Config) Parse(configPath *string) error {
 }
 
 // NewConfig generates a config struct and parses a config file into it
-func NewConfig(configPath *string) (*Config, error) {
+func NewConfig(configPath string) (*Config, error) {
 	config := new(Config)
 	if err := config.Parse(configPath); err != nil {
 		return nil, err

@@ -1,0 +1,32 @@
+{
+  "jrpcserver": {
+    "host": "localhost",
+    "port": 8001,
+    "rpcEndpointUrl": "/rpc",
+    "enabledRpcModules": {
+      "calculateSum": [
+        "calculateSum"
+      ],
+      "reverseString": [
+        "reverseString"
+      ]
+    }
+  },
+  "ingress": {
+    "refreshCachedRequestThreshold": 5.0,
+    "expireCachedRequestThreshold": 30.0,
+    "natsCallWaitTimeout": 5.0,
+    "invalidateCacheLoopSleepPeriod": 5.0,
+    "host": "localhost",
+    "port": 8000
+  },
+  "egress": {
+    "host": "localhost",
+    "port": 8002
+  },
+  "nats": {
+    "serverUrl": "nats://localhost:4222",
+    "subjectName": "jrpc.*.*",
+    "queueName": "jrpcQueue"
+  }
+}
