@@ -1,0 +1,5 @@
+#!/bin/sh
+
+srv="$1"
+
+killall "${srv}" >/dev/null 2>&1

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+srv="$1"
+
+BASEDIR=$(dirname $(realpath "$0"))
+CONFIGARG="-configPath ${BASEDIR}/../config.dev.json"
+
+eval "${BASEDIR}/../bin/${srv} ${CONFIGARG}"

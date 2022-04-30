@@ -1,0 +1,10 @@
+#!/bin/sh
+
+srv="$1"
+
+BASEDIR=$(dirname $(realpath "$0"))
+BUILDDIR="${BASEDIR}/../bin"
+SRCDIR="${BASEDIR}/../cmd"
+
+echo "Building ${srv}..."
+go build -o "${BUILDDIR}/${srv}" "${SRCDIR}/${srv}/main.go"

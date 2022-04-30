@@ -1,0 +1,36 @@
+version: "3.9"
+services:
+
+  ingress:
+    build:
+      context: .
+      dockerfile: ingress.Dockerfile
+    depends_on:
+      - egress
+    ports:
+      - "8000:8000"
+    network_mode: "host"
+
+  egress:
+    build:
+      context: .
+      dockerfile: egress.Dockerfile
+    depends_on:
+      - jrpcserver
+    network_mode: "host"
+
+  jrpcserver:
+    build:
+      context: .
+      dockerfile: jrpcserver.Dockerfile
+    depends_on:
+      - nats
+    ports:
+      - "8001:8001"
+    network_mode: "host"
+
+  nats:
+    image: nats:2.8.1-linux
+    ports:
+      - "4222:4222"
+    network_mode: "host"

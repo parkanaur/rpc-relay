@@ -140,7 +140,7 @@ func (cache *RequestCache) Start() {
 	go cache.InvalidateStaleValuesLoop()
 }
 
-// Stop sends a signal to stop to the cache invalidation loop
+// Stop sends a signal to stopsrv to the cache invalidation loop
 func (cache *RequestCache) Stop() {
 	cache.done <- true
 	close(cache.done)

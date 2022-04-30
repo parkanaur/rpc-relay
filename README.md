@@ -29,6 +29,9 @@ This will build (`go build`) the server executables for the:
 - egress proxy (`bin/egress`)
 - HTTP JSON-RPC server (`bin/jrpcserver`)
 
+Alternatively, run `scripts/buildsrv` with either `ingress`, `egress`
+or `jrpcserver` as an argument.
+
 ## Configuration
 
 All components accept the `-configPath` command line argument which defaults to
@@ -89,6 +92,9 @@ Either
 ./scripts/startall &
 ```
 
+Alternatively, run `scripts/startsrv` with either `ingress`, `egress`
+or `jrpcserver` as an argument.
+
 Or just run the executables in the `bin` folder in the following order:
 - `bin/jrpcserver`
 - `bin/egress`
@@ -98,13 +104,19 @@ Or just run the executables in the `bin` folder in the following order:
 
 Alternatively, run `docker-compose up -d` using the provided `docker-compose.yaml`.
 
+This configuration uses default `config.dev.json` for demonstration.
+
+Containers are running with `network_mode: "host"` for convenience.
+Further tweaks to the build and deployment process are possible.
+
 ## Stopping
 
 ```shell
 ./scripts/stopall
 ```
 
-Alternatively just `killall` the `ingress`, `egress`, and `jrpcserver` processes.
+Alternatively just `killall` the `ingress`, `egress`, and `jrpcserver` processes,
+or use the `killsrv` script.
 
 ## Testing
 

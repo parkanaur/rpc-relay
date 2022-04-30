@@ -7,6 +7,6 @@ pgrep nats-server >/dev/null || echo "nats-server might not be running"
 
 SERVERS=`echo "jrpcserver egress ingress"`
 for srv in $SERVERS; do
-  eval "${BASEDIR}/../bin/${srv} ${CONFIGARG}" &
+  eval "${BASEDIR}/startsrv ${srv}" &
 done
 

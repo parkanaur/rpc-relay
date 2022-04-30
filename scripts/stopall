@@ -1,3 +1,8 @@
 #!/bin/sh
 
-killall ingress egress jrpcserver >/dev/null 2>&1
+BASEDIR=$(dirname $(realpath "$0"))
+
+SERVERS=`echo "jrpcserver egress ingress"`
+for srv in $SERVERS; do
+  eval "${BASEDIR}/stopsrv ${srv}"
+done
