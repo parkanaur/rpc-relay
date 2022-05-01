@@ -5,11 +5,33 @@ import (
 	gnatsd "github.com/nats-io/gnatsd/server"
 	natstest "github.com/nats-io/nats-server/test"
 	"github.com/parkanaur/rpc-relay/pkg/egress"
+	"github.com/parkanaur/rpc-relay/pkg/ingress"
 	"github.com/parkanaur/rpc-relay/pkg/jrpcserver"
 	"github.com/parkanaur/rpc-relay/pkg/relayutil"
+	"net"
 	"net/http"
+	"net/url"
+	"strconv"
 	"testing"
 )
+
+func StartTestNATSServer(t *testing.T, cf *relayutil.Config) *gnatsd.Server {
+	u, err := url.ParseRequestURI(cf.NATS.ServerURL)
+	host, portStr, err := net.SplitHostPort(u.Host)
+	port, err := strconv.Atoi(portStr)
+	opts := gnatsd.Options{
+		Host:           host,
+		Port:           port,
+		NoLog:          true,
+		NoSigs:         true,
+		MaxControlLine: 256,
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return natstest.RunServer(&opts)
+}
 
 func NewTestConfig() *relayutil.Config {
 	return &relayutil.Config{
@@ -33,7 +55,7 @@ func NewTestConfig() *relayutil.Config {
 			Port: 8002,
 		},
 		NATS: &relayutil.NATSConfig{
-			ServerURL:   "nats://localhost:4222",
+			ServerURL:   "nats://localhost:4223",
 			SubjectName: "rpc.*.*",
 			QueueName:   "rpcQueue",
 		},
@@ -44,6 +66,7 @@ type RelayFixture struct {
 	NATSTestServer *gnatsd.Server
 	JRPCServer     *http.Server
 	EgressServer   *egress.Server
+	IngressSever   *http.Server
 }
 
 func NewJRPCServer(t *testing.T, config *relayutil.Config) *http.Server {
@@ -60,14 +83,25 @@ func NewJRPCServer(t *testing.T, config *relayutil.Config) *http.Server {
 	return httpSrv
 }
 
+func NewIngressServer(t *testing.T, config *relayutil.Config) *http.Server {
+	srv, err := ingress.NewServer(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	httpServer := &http.Server{Addr: config.Ingress.GetHostWithPort(), Handler: srv}
+
+	return httpServer
+}
+
 func NewRelayFixture(t *testing.T, config *relayutil.Config) *RelayFixture {
-	natsSrv := natstest.RunServer(nil)
+	natsSrv := StartTestNATSServer(t, config)
 	jrpcSrv := NewJRPCServer(t, config)
 	egrSrv, err := egress.NewServer(config)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &RelayFixture{natsSrv, jrpcSrv, egrSrv}
+	ingSrv := NewIngressServer(t, config)
+	return &RelayFixture{natsSrv, jrpcSrv, egrSrv, ingSrv}
 }
 
 func (fixture *RelayFixture) Shutdown() error {

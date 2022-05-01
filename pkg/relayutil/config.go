@@ -35,6 +35,8 @@ func (config *JRPCServerConfig) GetHostWithPort() string {
 type IngressConfig struct {
 	Host string
 	Port int
+	// Endpoint URL
+	EndpointURL string
 	// Threshold value in seconds. If less time than threshold had passed before a cached request was retrieved,
 	// a new request is not made.
 	RefreshCachedRequestThreshold float64

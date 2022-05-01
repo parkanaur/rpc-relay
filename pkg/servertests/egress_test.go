@@ -2,7 +2,6 @@ package servertests
 
 import (
 	"encoding/json"
-	natstest "github.com/nats-io/nats-server/test"
 	"github.com/nats-io/nats.go"
 	"github.com/parkanaur/rpc-relay/pkg/egress"
 	"github.com/parkanaur/rpc-relay/pkg/relayutil"
@@ -17,9 +16,9 @@ type RPCCalcSumResponse struct {
 }
 
 func TestNewServer(t *testing.T) {
-	natsSrv := natstest.RunServer(nil)
-	defer natsSrv.Shutdown()
 	cf := NewTestConfig()
+	natsSrv := StartTestNATSServer(t, cf)
+	defer natsSrv.Shutdown()
 	server, err := egress.NewServer(cf)
 	assert.NoError(t, err)
 
@@ -33,9 +32,9 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestServer_Shutdown(t *testing.T) {
-	natsSrv := natstest.RunServer(nil)
-	defer natsSrv.Shutdown()
 	cf := NewTestConfig()
+	natsSrv := StartTestNATSServer(t, cf)
+	defer natsSrv.Shutdown()
 	server, _ := egress.NewServer(cf)
 
 	err := server.Shutdown()

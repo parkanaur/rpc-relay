@@ -36,7 +36,7 @@ func main() {
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 
 	httpServer := &http.Server{Addr: config.Ingress.GetHostWithPort()}
-	http.HandleFunc("/rpc", server.Handler)
+	http.Handle(config.Ingress.EndpointURL, server)
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalln("Error while serving HTTP:", err)

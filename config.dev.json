@@ -18,7 +18,8 @@
     "natsCallWaitTimeout": 5.0,
     "invalidateCacheLoopSleepPeriod": 5.0,
     "host": "localhost",
-    "port": 8000
+    "port": 8000,
+    "endpointUrl": "/relay"
   },
   "egress": {
     "host": "localhost",

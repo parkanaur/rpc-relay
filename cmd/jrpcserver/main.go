@@ -34,7 +34,8 @@ func main() {
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 
-	httpServer := &http.Server{Addr: config.JRPCServer.GetHostWithPort(), Handler: server}
+	httpServer := &http.Server{Addr: config.JRPCServer.GetHostWithPort()}
+	http.Handle(config.JRPCServer.RPCEndpointURL, server)
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalln("Error while serving HTTP:", err)

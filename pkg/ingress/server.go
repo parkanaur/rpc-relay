@@ -40,7 +40,7 @@ func (server *Server) SendRPCRequest(request *egress.RPCRequest) (*nats.Msg, err
 		relayutil.GetDurationInSeconds(server.config.Ingress.NATSCallWaitTimeout))
 }
 
-func (server *Server) Handler(w http.ResponseWriter, req *http.Request) {
+func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(w, "invalid HTTP method: only POST is allowed", http.StatusMethodNotAllowed)
 		return
