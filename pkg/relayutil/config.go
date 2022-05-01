@@ -74,10 +74,10 @@ func (config *NATSConfig) GetSubjectName(moduleName, methodName string) string {
 
 // Config is a struct for holding configuration values for all proxies and servers
 type Config struct {
-	JRPCServer JRPCServerConfig
-	Ingress    IngressConfig
-	Egress     EgressConfig
-	NATS       NATSConfig
+	JRPCServer *JRPCServerConfig
+	Ingress    *IngressConfig
+	Egress     *EgressConfig
+	NATS       *NATSConfig
 }
 
 // GetDurationInSeconds converts a float value for seconds to time.Duration
