@@ -61,6 +61,7 @@ structs and their methods. See the `jrpcserver.services` package for more detail
 
 - `host`. Defaults to `localhost`
 - `port`. Defaults to `8000`
+- `endpointUrl`. The HTTP endpoint the server will accept calls on. Defaults to `/relay`
 - `refreshCachedRequestThreshold`. Threshold value in **seconds**. If less time than threshold had passed before 
 a cached request was retrieved, a new request is not made. Defaults to `5.0`
 - `expireCachedRequestThreshold`. Threshold value in **seconds**. All cached requests are expired if 
