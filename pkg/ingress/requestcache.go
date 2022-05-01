@@ -12,17 +12,17 @@ import (
 // CachedRequest holds the RPC request as well as the time it was added to the queue.
 // Response is also cached here as bytes
 type CachedRequest struct {
-	ctime   time.Time
-	request *egress.RPCRequest
+	CTime   time.Time
+	Request *egress.RPCRequest
 	// egress.RPCResponse serialized into bytes. Since we don't need to unmarshal it at any point to return to the
 	// user, it's wise to keep it here as raw bytes.
-	response []byte
+	Response []byte
 }
 
 // IsRequestStale compares the request cache time to current time and checks if it has exceeded the given
 // time to live
 func (request *CachedRequest) IsRequestStale(timeToLive time.Duration) bool {
-	return time.Since(request.ctime) > timeToLive
+	return time.Since(request.CTime) > timeToLive
 }
 
 // RequestCache is a wrapper around the map which maps request keys (see RPCRequest) to
@@ -140,7 +140,7 @@ func (cache *RequestCache) Start() {
 	go cache.InvalidateStaleValuesLoop()
 }
 
-// Stop sends a signal to stopsrv to the cache invalidation loop
+// Stop sends a signal to stop to the cache invalidation loop
 func (cache *RequestCache) Stop() {
 	cache.done <- true
 	close(cache.done)

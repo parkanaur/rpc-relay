@@ -83,7 +83,7 @@ func (server *Server) Handler(w http.ResponseWriter, req *http.Request) {
 			if !cachedRequest.IsRequestStale(
 				relayutil.GetDurationInSeconds(server.config.Ingress.RefreshCachedRequestThreshold)) {
 				log.Infoln("Returned cached request from cache:", reqKey)
-				w.Write(cachedRequest.response)
+				w.Write(cachedRequest.Response)
 				return
 			}
 		}
