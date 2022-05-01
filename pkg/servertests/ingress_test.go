@@ -41,11 +41,18 @@ func TestIngressHandleCall(t *testing.T) {
 	fixture := NewRelayFixture(t, cf)
 	defer fixture.Shutdown()
 
-	_, err := http.Post(
+	jsonResp, err := http.Post(
 		"http://"+cf.Ingress.GetHostWithPort(),
 		"application/json",
 		bytes.NewBuffer([]byte(`{"jsonrpc": "2.0", "id": 1, "method": "calculateSum_calculateSum", "params": [1, 2]}`)))
 	assert.NoError(t, err)
+
+	var resp RPCCalcSumResponse
+	err = json.NewDecoder(jsonResp.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Equal(t, resp.Result, 3)
+	assert.Equal(t, resp.ID, 1)
+	assert.Equal(t, resp.JSONRPC, "2.0")
 }
 
 func TestIngressHandleBadCalls(t *testing.T) {
