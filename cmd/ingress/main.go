@@ -54,7 +54,7 @@ func main() {
 	if err := httpServer.Shutdown(ctx); err != nil {
 		log.Fatalln("HTTP Server shutdown failed:", err)
 	}
-	if err := server.Cleanup(); err != nil {
+	if err := server.Shutdown(); err != nil {
 		log.Fatalln("Server shutdown failed:", err)
 	}
 }

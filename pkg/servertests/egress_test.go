@@ -15,7 +15,7 @@ type RPCCalcSumResponse struct {
 	ID      int    `json:"id"`
 }
 
-func TestNewServer(t *testing.T) {
+func TestEgress_NewServer(t *testing.T) {
 	cf := NewTestConfig()
 	natsSrv := StartTestNATSServer(t, cf)
 	defer natsSrv.Shutdown()
@@ -31,7 +31,7 @@ func TestNewServer(t *testing.T) {
 	_ = server.Shutdown()
 }
 
-func TestServer_Shutdown(t *testing.T) {
+func TestEgress_NewServer_Shutdown(t *testing.T) {
 	cf := NewTestConfig()
 	natsSrv := StartTestNATSServer(t, cf)
 	defer natsSrv.Shutdown()
@@ -43,7 +43,7 @@ func TestServer_Shutdown(t *testing.T) {
 	assert.Equal(t, server.NATSConnection.Status(), nats.CLOSED)
 }
 
-func TestServer_handleRPCRequest(t *testing.T) {
+func TestEgress_Server_handleRPCRequest(t *testing.T) {
 	cf := NewTestConfig()
 	fixture := NewRelayFixture(t, cf)
 	defer fixture.Shutdown()

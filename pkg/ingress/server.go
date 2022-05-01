@@ -2,7 +2,6 @@ package ingress
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/nats-io/nats.go"
 	"github.com/parkanaur/rpc-relay/pkg/egress"
 	"github.com/parkanaur/rpc-relay/pkg/relayutil"
@@ -18,7 +17,7 @@ type Server struct {
 	// RPC request cache
 	RequestCache *RequestCache
 	// NATS connection
-	natsConn *nats.Conn
+	NATSConnection *nats.Conn
 	// Channel which is written to during shutdown and read from by the shutdown function
 	done chan bool
 	// Waitgroup for NATS connection draining handling
@@ -34,7 +33,7 @@ func (server *Server) SendRPCRequest(request *egress.RPCRequest) (*nats.Msg, err
 		return nil, err
 	}
 
-	return server.natsConn.Request(
+	return server.NATSConnection.Request(
 		server.config.NATS.GetSubjectName(request.ModuleName, request.MethodName),
 		msgData,
 		relayutil.GetDurationInSeconds(server.config.Ingress.NATSCallWaitTimeout))
@@ -55,7 +54,10 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	rpcReq, err := egress.ParseCall(body)
 	if err != nil {
-		http.Error(w, fmt.Sprintln("invalid JSON format:", err), http.StatusBadRequest)
+		respObj := egress.CreateErrorResponse(egress.RPCErrorNotWellFormed, err)
+		respJson, _ := json.Marshal(respObj)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(respJson)
 		return
 	}
 
@@ -89,9 +91,6 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// TODO: Check if response is an ErrorResponse AND the error code is for an internal error.
-	// Return a http.Error with HTTP 500 in this case. Forward the error RPC response as usual otherwise.
-
 	msg, err := server.SendRPCRequest(rpcReq)
 	if err != nil {
 		log.Errorln("error during NATS RPC call", err)
@@ -99,8 +98,31 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	var jsonResp map[string]any
+
+	err = json.Unmarshal(msg.Data, &jsonResp)
+	if err != nil {
+		log.Errorln("error during NATS RPC call", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	respCode := http.StatusOK
+
+	// Check if response is an ErrorResponse AND the error code is for an internal error.
+	// Return a http.Error with HTTP 500 in this case. Forward the error RPC response as usual otherwise
+	if errField, ok := jsonResp["error"]; ok {
+		if errField.(map[string]any)["code"] == egress.RPCErrorInternalError {
+			log.Errorln("error during NATS RPC call", jsonResp["error"])
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		respCode = http.StatusBadRequest
+	}
+
 	defer server.RequestCache.Add(rpcReq, msg.Data)
 	log.Infoln("Added request to cache:", reqKey)
+	w.WriteHeader(respCode)
 	w.Write(msg.Data)
 }
 
@@ -124,13 +146,13 @@ func NewServer(config *relayutil.Config) (*Server, error) {
 	return server, nil
 }
 
-// Cleanup stops the cache invalidation goroutine and drains the NATS connection
-func (server *Server) Cleanup() error {
+// Shutdown stops the cache invalidation goroutine and drains the NATS connection
+func (server *Server) Shutdown() error {
 	log.Infoln("Stopping cache invalidation routine...")
 	server.RequestCache.Stop()
 
 	log.Infoln("Draining NATS connection...")
-	if err := server.natsConn.Drain(); err != nil {
+	if err := server.NATSConnection.Drain(); err != nil {
 		return err
 	}
 

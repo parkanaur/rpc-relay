@@ -63,10 +63,11 @@ func NewTestConfig() *relayutil.Config {
 }
 
 type RelayFixture struct {
-	NATSTestServer *gnatsd.Server
-	JRPCServer     *http.Server
-	EgressServer   *egress.Server
-	IngressSever   *http.Server
+	NATSTestServer    *gnatsd.Server
+	JRPCHTTPServer    *http.Server
+	EgressServer      *egress.Server
+	IngressHTTPServer *http.Server
+	IngressServer     *ingress.Server
 }
 
 func NewJRPCServer(t *testing.T, config *relayutil.Config) *http.Server {
@@ -83,14 +84,18 @@ func NewJRPCServer(t *testing.T, config *relayutil.Config) *http.Server {
 	return httpSrv
 }
 
-func NewIngressServer(t *testing.T, config *relayutil.Config) *http.Server {
+func NewIngressServer(t *testing.T, config *relayutil.Config) (*http.Server, *ingress.Server) {
 	srv, err := ingress.NewServer(config)
 	if err != nil {
 		t.Fatal(err)
 	}
-	httpServer := &http.Server{Addr: config.Ingress.GetHostWithPort(), Handler: srv}
-
-	return httpServer
+	httpSrv := &http.Server{Addr: config.Ingress.GetHostWithPort(), Handler: srv}
+	go func() {
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			t.Fatal(err)
+		}
+	}()
+	return httpSrv, srv
 }
 
 func NewRelayFixture(t *testing.T, config *relayutil.Config) *RelayFixture {
@@ -100,21 +105,33 @@ func NewRelayFixture(t *testing.T, config *relayutil.Config) *RelayFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ingSrv := NewIngressServer(t, config)
-	return &RelayFixture{natsSrv, jrpcSrv, egrSrv, ingSrv}
+	ingHttpSrv, ingSrv := NewIngressServer(t, config)
+	return &RelayFixture{natsSrv, jrpcSrv, egrSrv, ingHttpSrv, ingSrv}
 }
 
 func (fixture *RelayFixture) Shutdown() error {
-	err := fixture.EgressServer.Shutdown()
+	ctx := context.Background()
+
+	err := fixture.IngressHTTPServer.Shutdown(ctx)
+	if err != nil {
+		return err
+	}
+	err = fixture.IngressServer.Shutdown()
 	if err != nil {
 		return err
 	}
 
-	err = fixture.JRPCServer.Shutdown(context.Background())
+	err = fixture.EgressServer.Shutdown()
+	if err != nil {
+		return err
+	}
+
+	err = fixture.JRPCHTTPServer.Shutdown(ctx)
 	if err != nil {
 		return err
 	}
 
 	fixture.NATSTestServer.Shutdown()
+
 	return nil
 }
